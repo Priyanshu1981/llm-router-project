@@ -1,0 +1,53 @@
+{
+  "trained_at": "2026-11-13T05:34:39+00:00",
+  "chosen_variant": "combined_rf",
+  "tolerance": 0.02,
+  "recommended_threshold": 0.92,
+  "n_train": 294,
+  "n_test": 126,
+  "hard_in_train": 22,
+  "hard_in_test": 9,
+  "candidates": {
+    "handcrafted_lr": {
+      "cv_auc_mean": 0.5927,
+      "cv_auc_std": 0.1791,
+      "test_auc": 0.5689
+    },
+    "embedding_lr": {
+      "cv_auc_mean": 0.5501,
+      "cv_auc_std": 0.0759,
+      "test_auc": 0.5128
+    },
+    "combined_lr": {
+      "cv_auc_mean": 0.5568,
+      "cv_auc_std": 0.082,
+      "test_auc": 0.5185
+    },
+    "combined_rf": {
+      "cv_auc_mean": 0.6155,
+      "cv_auc_std": 0.0797,
+      "test_auc": 0.509
+    }
+  },
+  "test_results": {
+    "always_small": {
+      "accuracy": 0.8650793650793651,
+      "cost_usd": 0.005816925
+    },
+    "always_large": {
+      "accuracy": 0.8968253968253969,
+      "cost_usd": 0.01388685
+    },
+    "perfect_router": {
+      "accuracy": 0.9365079365079365,
+      "cost_usd": 0.0067977
+    },
+    "router": {
+      "accuracy": 0.8888888888888888,
+      "cost_usd": 0.009876299999999998,
+      "share_sent_to_small": 0.42063492063492064,
+      "hard_caught": 7,
+      "hard_missed": 2
+    }
+  }
+}

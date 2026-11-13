@@ -4,31 +4,32 @@ The web server. It connects the pieces together:
 
     request -> choose a model -> call the model -> compute cost -> log it -> respond
 
-Phase 2 version: no semantic cache and no ML router yet.
+Phase 4 version: the ML router chooses the model in "auto" mode.
+Still to come: the semantic cache (Phase 5).
   mode "small" / "large"  -> uses exactly that model
-  mode "auto"             -> uses the large model (the safe default) until the
-                             router is built in Phase 4
+  mode "auto"             -> the trained router decides
 """
 
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException, Query
 
-from backend import config, cost, database, llm_client
+from backend import config, cost, database, llm_client, router
 from backend.schemas import QueryRequest, QueryResponse, StatsResponse
 
 
 @asynccontextmanager
 async def lifespan(app):
-    """Runs once when the server starts: make sure the database table exists."""
+    """Runs once when the server starts: prepare the database and load the router."""
     database.init_db()
+    router.load()
     yield
 
 
 app = FastAPI(
     title="Cost-Aware LLM Router",
     description="Routes queries between a small and a large model and caches similar answers.",
-    version="0.2.0",
+    version="0.3.0",
     lifespan=lifespan,
 )
 
@@ -56,6 +57,8 @@ def health():
         "max_output_tokens": config.MAX_OUTPUT_TOKENS,
         "cache_threshold": config.CACHE_THRESHOLD,
         "router_threshold": config.ROUTER_THRESHOLD,
+        "router_loaded": router.is_ready(),
+        "router_info": router.info(),
         "prices_per_million_tokens": {
             "small": {"input": config.SMALL_INPUT_PRICE_PER_M, "output": config.SMALL_OUTPUT_PRICE_PER_M},
             "large": {"input": config.LARGE_INPUT_PRICE_PER_M, "output": config.LARGE_OUTPUT_PRICE_PER_M},
@@ -78,9 +81,8 @@ def handle_query(request: QueryRequest):
         tier = "large"
         route_reason = "forced by the caller (mode=large)"
     else:
-        # The ML router arrives in Phase 4. Until then, choose the safe option.
-        tier = "large"
-        route_reason = "auto mode: router not built yet (Phase 4), so the large model is used"
+        # The trained router decides. If it is missing, it falls back to the large model.
+        tier, route_reason, _router_score = router.route(request.query)
 
     # 2. Call the model.
     try:
