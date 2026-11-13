@@ -1,0 +1,57 @@
+﻿kind,question_a,question_b,similarity,guard_blocks,guard_reason,why_different
+paraphrase,What is the capital of France?,Which city is the capital of France?,0.9416,False,,
+paraphrase,How do I reset my password?,"I forgot my password, how can I reset it?",0.9368,False,,
+paraphrase,Who wrote the play Romeo and Juliet?,Who is the author of Romeo and Juliet?,0.9107,False,,
+paraphrase,What is photosynthesis?,Can you explain what photosynthesis is?,0.9353,False,,
+paraphrase,How many days are there in a leap year?,How many days does a leap year have?,0.9823,False,,
+paraphrase,What is the boiling point of water at sea level in Celsius?,"At sea level, at what Celsius temperature does water boil?",0.9316,False,,
+paraphrase,What does CPU stand for?,What is the full form of CPU?,0.8562,False,,
+paraphrase,Explain the difference between a list and a tuple in Python.,What is the difference between Python lists and tuples?,0.9276,False,,
+paraphrase,What is the largest planet in our solar system?,Which planet is the biggest in the solar system?,0.9559,False,,
+paraphrase,How many continents are there?,What is the number of continents on Earth?,0.9064,False,,
+paraphrase,What is 15% of 200?,Calculate 15 percent of 200.,0.8645,False,,
+paraphrase,Convert 5 kilometers to miles.,How many miles is 5 kilometers?,0.8458,False,,
+paraphrase,What is the chemical symbol for gold?,Which symbol represents gold in the periodic table?,0.8174,False,,
+paraphrase,Who painted the Mona Lisa?,Which artist created the Mona Lisa?,0.9056,False,,
+paraphrase,What is the square root of 144?,Find the square root of 144.,0.9383,False,,
+paraphrase,How does a binary search work?,Explain the binary search algorithm.,0.9123,False,,
+paraphrase,What is the speed of light in a vacuum?,How fast does light travel in a vacuum?,0.9117,False,,
+paraphrase,Define machine learning.,What is machine learning?,0.9094,False,,
+paraphrase,What causes the seasons on Earth?,Why does Earth have seasons?,0.8952,False,,
+paraphrase,How many minutes are in 3 hours?,Convert 3 hours into minutes.,0.856,False,,
+different,What is 15% of 200?,What is 15% of 300?,0.8381,True,the two questions contain different numbers,different number
+different,Convert 5 kilometers to miles.,Convert 50 kilometers to miles.,0.8978,True,the two questions contain different numbers,different number
+different,What is the capital of Australia?,What is the capital of Austria?,0.7104,False,,different country with a similar name
+different,Who was the first president of the United States?,Who was the second president of the United States?,0.7805,False,,"ordinal word, not a digit"
+different,Is the Earth flat?,Is the Earth not flat?,0.9695,True,one question is negated and the other is not,negation
+different,"Which of the following is a mammal?
+A. Shark
+B. Dolphin
+C. Trout
+D. Salmon","Which of the following is not a mammal?
+A. Shark
+B. Dolphin
+C. Trout
+D. Salmon",0.9693,True,multiple-choice question: only an exact repeat may match,negated multiple-choice question
+different,"Which planet is the largest?
+A. Mars
+B. Jupiter
+C. Venus
+D. Earth","Which planet is the largest?
+A. Jupiter
+B. Mars
+C. Venus
+D. Earth",0.9972,True,multiple-choice question: only an exact repeat may match,same options in a different order
+different,What is the derivative of x^2?,What is the integral of x^2?,0.6536,False,,different operation
+different,How do I convert Celsius to Fahrenheit?,How do I convert Fahrenheit to Celsius?,0.9953,False,,opposite direction
+different,Write a Python function to sort a list in ascending order.,Write a Python function to sort a list in descending order.,0.9622,False,,opposite order
+different,What is the time complexity of binary search?,What is the time complexity of linear search?,0.8057,False,,different algorithm
+different,How many days are in February in a leap year?,How many days are in February in a non-leap year?,0.9561,False,,non-leap
+different,Translate 'good morning' into Spanish.,Translate 'good morning' into French.,0.862,False,,different language
+different,Who discovered penicillin?,Who discovered insulin?,0.5418,False,,different discovery
+different,What is the sum of the angles in a triangle?,What is the sum of the angles in a quadrilateral?,0.8183,False,,different shape
+different,What is 12 times 8?,What is 12 plus 8?,0.787,False,,"same numbers, different operation"
+different,Add 25 and 17.,Subtract 17 from 25.,0.738,False,,"same numbers, different operation"
+different,Is 17 a prime number?,Is 18 a prime number?,0.8466,True,the two questions contain different numbers,different number
+different,What is the boiling point of water in Celsius?,What is the freezing point of water in Celsius?,0.8323,False,,opposite property
+different,Which team won the 2018 FIFA World Cup?,Which team won the 2022 FIFA World Cup?,0.7247,True,the two questions contain different numbers,different year

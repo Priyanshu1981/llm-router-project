@@ -1,0 +1,31 @@
+{
+  "about": "Fresh question pairs for evaluating the semantic cache AFTER the stronger guards were added. paraphrase_pairs mean the same thing (a cache hit is correct). different_pairs look similar but need different answers (a cache hit would be a wrong answer). Written after the guards, so only an approximate check: add your own pairs.",
+  "paraphrase_pairs": [
+    {"a": "What is the freezing point of water in Fahrenheit?", "b": "At what Fahrenheit temperature does water freeze?"},
+    {"a": "How many bones are in the adult human body?", "b": "What is the number of bones in an adult human?"},
+    {"a": "Who invented the telephone?", "b": "Who is credited with inventing the telephone?"},
+    {"a": "What is the difference between TCP and UDP?", "b": "How do TCP and UDP differ?"},
+    {"a": "How do I center a div in CSS?", "b": "What is the way to center a div using CSS?"},
+    {"a": "What is the capital of Japan?", "b": "Which city serves as Japan's capital?"},
+    {"a": "How many seconds are in one hour?", "b": "How many seconds does an hour have?"},
+    {"a": "What is 20% of 50?", "b": "Calculate 20 percent of 50."},
+    {"a": "What does HTML stand for?", "b": "What is the full form of HTML?"},
+    {"a": "Explain what an API is.", "b": "What is an API?"},
+    {"a": "How far is the Moon from Earth?", "b": "What is the distance between the Earth and the Moon?"},
+    {"a": "What is the tallest mountain in the world?", "b": "Which mountain is the highest in the world?"}
+  ],
+  "different_pairs": [
+    {"a": "What is the population of India?", "b": "What is the population of China?", "why": "different country"},
+    {"a": "How do I convert binary to decimal?", "b": "How do I convert decimal to binary?", "why": "opposite direction"},
+    {"a": "What is 45 divided by 9?", "b": "What is 45 multiplied by 9?", "why": "different operation"},
+    {"a": "Is 21 an even number?", "b": "Is 21 an odd number?", "why": "opposite property"},
+    {"a": "What is the largest ocean?", "b": "What is the smallest ocean?", "why": "opposite"},
+    {"a": "Who won the Nobel Prize in Physics in 2015?", "b": "Who won the Nobel Prize in Physics in 2016?", "why": "different year"},
+    {"a": "How do I sort an array in ascending order?", "b": "How do I sort an array in descending order?", "why": "opposite order"},
+    {"a": "What is the speed of sound in air?", "b": "What is the speed of sound in water?", "why": "different medium"},
+    {"a": "Explain how a stack works.", "b": "Explain how a queue works.", "why": "different data structure"},
+    {"a": "What causes day and night?", "b": "What causes the tides?", "why": "different phenomenon"},
+    {"a": "Can penguins fly?", "b": "Why can't penguins fly?", "why": "different question type"},
+    {"a": "How many sides does a hexagon have?", "b": "How many sides does a pentagon have?", "why": "different shape"}
+  ]
+}

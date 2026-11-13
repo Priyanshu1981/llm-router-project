@@ -1,0 +1,25 @@
+﻿kind,question_a,question_b,similarity,guard_blocks,guard_reason,why_different
+paraphrase,What is the freezing point of water in Fahrenheit?,At what Fahrenheit temperature does water freeze?,0.9058,False,,
+paraphrase,How many bones are in the adult human body?,What is the number of bones in an adult human?,0.9472,False,,
+paraphrase,Who invented the telephone?,Who is credited with inventing the telephone?,0.9285,False,,
+paraphrase,What is the difference between TCP and UDP?,How do TCP and UDP differ?,0.9659,False,,
+paraphrase,How do I center a div in CSS?,What is the way to center a div using CSS?,0.9793,False,,
+paraphrase,What is the capital of Japan?,Which city serves as Japan's capital?,0.9021,False,,
+paraphrase,How many seconds are in one hour?,How many seconds does an hour have?,0.9438,True,the two questions contain different numbers,
+paraphrase,What is 20% of 50?,Calculate 20 percent of 50.,0.8674,False,,
+paraphrase,What does HTML stand for?,What is the full form of HTML?,0.8609,False,,
+paraphrase,Explain what an API is.,What is an API?,0.9558,False,,
+paraphrase,How far is the Moon from Earth?,What is the distance between the Earth and the Moon?,0.9242,False,,
+paraphrase,What is the tallest mountain in the world?,Which mountain is the highest in the world?,0.9376,False,,
+different,What is the population of India?,What is the population of China?,0.7118,True,"each question names something (a person, place or term) that the other does not",different country
+different,How do I convert binary to decimal?,How do I convert decimal to binary?,0.9942,True,the same words appear in a different order,opposite direction
+different,What is 45 divided by 9?,What is 45 multiplied by 9?,0.875,True,the two questions ask for different arithmetic operations,different operation
+different,Is 21 an even number?,Is 21 an odd number?,0.9068,True,the questions use opposing words (even vs odd),opposite property
+different,What is the largest ocean?,What is the smallest ocean?,0.8009,True,the questions use opposing words (largest vs smallest),opposite
+different,Who won the Nobel Prize in Physics in 2015?,Who won the Nobel Prize in Physics in 2016?,0.9211,True,the two questions contain different numbers,different year
+different,How do I sort an array in ascending order?,How do I sort an array in descending order?,0.9469,True,the questions use opposing words (ascending vs descending),opposite order
+different,What is the speed of sound in air?,What is the speed of sound in water?,0.8078,False,,different medium
+different,Explain how a stack works.,Explain how a queue works.,0.4418,False,,different data structure
+different,What causes day and night?,What causes the tides?,0.3667,False,,different phenomenon
+different,Can penguins fly?,Why can't penguins fly?,0.9285,True,one question is negated and the other is not,different question type
+different,How many sides does a hexagon have?,How many sides does a pentagon have?,0.7571,False,,different shape

@@ -8,9 +8,15 @@ For each threshold it reports:
 with the safety guards on and off.
 
 Uses no Groq tokens. Run from the project root:
+
     python ml/eval_cache_pairs.py
+        evaluates data/raw/cache_pairs.json (the development pairs)
+
+    python ml/eval_cache_pairs.py --pairs data/raw/cache_pairs_fresh.json --tag fresh
+        evaluates another pairs file and saves its results with "_fresh" in the file names
 """
 
+import argparse
 import json
 import sys
 from pathlib import Path
@@ -44,7 +50,21 @@ def section(title):
 
 
 def main():
-    path = config.RAW_DIR / "cache_pairs.json"
+    parser = argparse.ArgumentParser(description="Evaluate the semantic cache on question pairs.")
+    parser.add_argument("--pairs", default=None,
+                        help="path to a pairs file (default: data/raw/cache_pairs.json)")
+    parser.add_argument("--tag", default="",
+                        help="short label added to the names of the saved result files")
+    args = parser.parse_args()
+
+    if args.pairs:
+        path = Path(args.pairs)
+        if not path.is_absolute():
+            path = config.BASE_DIR / path
+    else:
+        path = config.RAW_DIR / "cache_pairs.json"
+    suffix = f"_{args.tag}" if args.tag else ""
+
     if not path.exists():
         print(f"Could not find {path}")
         sys.exit(1)
@@ -54,6 +74,8 @@ def main():
     paraphrase = data["paraphrase_pairs"]
     different = data["different_pairs"]
     pairs = [("paraphrase", p) for p in paraphrase] + [("different", p) for p in different]
+    print(f"Pairs file: {path}")
+    print(f"  {len(paraphrase)} paraphrase pairs, {len(different)} different pairs")
 
     print("Computing embeddings (loads the embedding model, so the first run can take a minute) ...")
     texts = []
@@ -132,6 +154,26 @@ def main():
               f"{row['hit_rate_no_guards'] * 100:>17.0f}% {row['wrong_hit_no_guards'] * 100:>11.0f}%{marker}")
 
     # -----------------------------------------------------------
+    # What still goes wrong at the threshold in .env
+    # -----------------------------------------------------------
+    threshold = config.CACHE_THRESHOLD
+    section(f"At your .env threshold ({threshold:.2f}): what still goes wrong")
+
+    still_reused = df[(df["kind"] == "different") & (df["similarity"] >= threshold) & (~df["guard_blocks"])]
+    print(f"  Trap pairs the cache would STILL wrongly reuse: {len(still_reused)} of {len(different)}")
+    for _, row in still_reused.sort_values("similarity", ascending=False).iterrows():
+        print(f"    {row['similarity']:.3f}  {short(row['question_a'], 34)}  |  {short(row['question_b'], 34)}")
+
+    blocked_paraphrases = df[(df["kind"] == "paraphrase") & df["guard_blocks"]]
+    print(f"  Paraphrases blocked by a guard (each one is a lost hit): {len(blocked_paraphrases)} of {len(paraphrase)}")
+    for _, row in blocked_paraphrases.iterrows():
+        print(f"    {short(row['question_a'], 34)}  |  {short(row['question_b'], 34)}")
+        print(f"       reason: {row['guard_reason']}")
+
+    below = df[(df["kind"] == "paraphrase") & (df["similarity"] < threshold) & (~df["guard_blocks"])]
+    print(f"  Paraphrases below the threshold (also lost hits): {len(below)} of {len(paraphrase)}")
+
+    # -----------------------------------------------------------
     # Overlap summary
     # -----------------------------------------------------------
     section("Where the two groups overlap")
@@ -146,8 +188,6 @@ def main():
               f"{diff_unblocked['similarity'].max():.3f}")
     else:
         print("  The guards blocked every 'different' pair.")
-    blocked_paraphrases = int(df[(df["kind"] == "paraphrase") & df["guard_blocks"]].shape[0])
-    print(f"  Paraphrases wrongly blocked by a guard   : {blocked_paraphrases} of {len(paraphrase)}")
     print()
     print("  Reading this: if the highest 'different' similarity is above the lowest paraphrase")
     print("  similarity, no threshold separates them perfectly, and the guards matter.")
@@ -158,9 +198,9 @@ def main():
     # Save
     # -----------------------------------------------------------
     config.RESULTS_DIR.mkdir(parents=True, exist_ok=True)
-    sweep_path = config.RESULTS_DIR / "cache_threshold_sweep.csv"
+    sweep_path = config.RESULTS_DIR / f"cache_threshold_sweep{suffix}.csv"
     sweep.to_csv(sweep_path, index=False)
-    pairs_path = config.RESULTS_DIR / "cache_pairs_scored.csv"
+    pairs_path = config.RESULTS_DIR / f"cache_pairs_scored{suffix}.csv"
     df.to_csv(pairs_path, index=False, encoding="utf-8-sig")
 
     fig, ax = plt.subplots(figsize=(7.5, 5))
@@ -174,11 +214,11 @@ def main():
                label=f"Threshold in .env ({config.CACHE_THRESHOLD:.2f})")
     ax.set_xlabel("Similarity threshold")
     ax.set_ylabel("Share of pairs (%)")
-    ax.set_title("Semantic cache: reuse vs wrong reuse")
+    ax.set_title("Semantic cache: reuse vs wrong reuse" + (f" ({args.tag} pairs)" if args.tag else ""))
     ax.grid(alpha=0.3)
     ax.legend(loc="center left", fontsize=9)
     fig.tight_layout()
-    chart_path = config.RESULTS_DIR / "cache_threshold_curve.png"
+    chart_path = config.RESULTS_DIR / f"cache_threshold_curve{suffix}.png"
     fig.savefig(chart_path, dpi=150)
     plt.close(fig)
 
