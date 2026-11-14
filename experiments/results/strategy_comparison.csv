@@ -1,0 +1,7 @@
+policy,share_sent_to_small,accuracy_pct,accuracy_ci_low,accuracy_ci_high,accuracy_vs_large_pts,accuracy_vs_large_ci_low,accuracy_vs_large_ci_high,cost_pct_of_large,cost_ci_low,cost_ci_high,total_cost_usd,avg_latency_ms
+Always small,1.0,85.71,82.38,88.82,-3.81,-6.9,-0.71,41.91,40.3,43.6,0.02019757,707.8
+Always large,0.0,89.52,86.43,92.38,0.0,0.0,0.0,100.0,100.0,100.0,0.04819815,792.6
+Random (same share as router),0.3635,88.14,85.24,90.78,-1.38,-2.51,-0.26,78.88,78.3,79.5,0.03802016,761.8
+Router (nested out-of-fold),0.3635,87.86,84.68,90.71,-1.67,-2.94,-0.48,76.4,73.83,79.08,0.03682485,752.1
+Router + keyword guardrail,0.3635,87.86,84.68,90.71,-1.67,-2.94,-0.48,76.4,73.83,79.08,0.03682485,752.1
+Perfect router (oracle),0.9262,93.1,90.48,95.48,3.57,1.9,5.48,47.44,44.68,50.59,0.022866,728.0

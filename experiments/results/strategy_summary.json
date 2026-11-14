@@ -1,0 +1,63 @@
+{
+  "questions": 420,
+  "hard_questions": 31,
+  "router_variant": "combined_rf",
+  "repeats": 3,
+  "folds": 5,
+  "tolerance": 0.02,
+  "router_share_sent_to_small": 0.3634920634920635,
+  "auc": 0.5775769135085829,
+  "auc_ci": [
+    0.47836555228009103,
+    0.6765903941151202
+  ],
+  "auc_per_repeat": [
+    0.5041048179782736,
+    0.5774110622771373,
+    0.5997180529065428
+  ],
+  "auc_by_source": {
+    "gsm8k": {
+      "questions": 100,
+      "hard": 3,
+      "auc": 0.3127147766323024
+    },
+    "mmlu": {
+      "questions": 320,
+      "hard": 28,
+      "auc": 0.540362035225049
+    }
+  },
+  "hard_caught_vs_chance": [
+    {
+      "repeat": 1,
+      "sent_to_large": 298,
+      "hard_caught": 23,
+      "expected_by_chance": 21.995238095238093,
+      "p_value": 0.42285771422857715
+    },
+    {
+      "repeat": 2,
+      "sent_to_large": 219,
+      "hard_caught": 18,
+      "expected_by_chance": 16.164285714285715,
+      "p_value": 0.3047695230476952
+    },
+    {
+      "repeat": 3,
+      "sent_to_large": 285,
+      "hard_caught": 23,
+      "expected_by_chance": 21.035714285714285,
+      "p_value": 0.28687131286871315
+    }
+  ],
+  "thresholds_chosen": [
+    0.87,
+    0.9,
+    0.92,
+    0.93,
+    0.94,
+    0.95
+  ],
+  "guardrail_matches": 3
+}
