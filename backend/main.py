@@ -10,12 +10,17 @@ Mode "auto":
 Mode "small" / "large":
     use exactly that model. The cache is neither read nor written, because the
     caller asked for a specific model.
+
+The web page (frontend/) is served at "/" and its files at "/static".
+The API documentation is at "/docs".
 """
 
 import time
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException, Query
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 
 from backend import cache, config, cost, database, features, llm_client, router
 from backend.schemas import QueryRequest, QueryResponse, StatsResponse
@@ -35,12 +40,27 @@ async def lifespan(app):
     yield
 
 
+class NoCacheStaticFiles(StaticFiles):
+    """
+    Serves the frontend files and tells the browser not to keep its own copy,
+    so edits to index.html, style.css and app.js show up when you reload the page.
+    """
+
+    async def get_response(self, path, scope):
+        response = await super().get_response(path, scope)
+        response.headers["Cache-Control"] = "no-cache"
+        return response
+
+
 app = FastAPI(
     title="Cost-Aware LLM Router",
     description="Routes queries between a small and a large model and caches similar answers.",
-    version="0.4.0",
+    version="0.5.0",
     lifespan=lifespan,
 )
+
+# The files in the frontend folder are available at /static/...
+app.mount("/static", NoCacheStaticFiles(directory=config.FRONTEND_DIR), name="static")
 
 
 def _shorten(text, limit=80):
@@ -49,10 +69,13 @@ def _shorten(text, limit=80):
     return text if len(text) <= limit else text[:limit] + "..."
 
 
-@app.get("/")
-def root():
-    """Simple welcome message to confirm the server is up."""
-    return {"message": "Cost-Aware LLM Router is running. Visit /docs for the API docs."}
+@app.get("/", include_in_schema=False)
+def home():
+    """The chat page. If the frontend files are missing, show a plain message instead."""
+    index_file = config.FRONTEND_DIR / "index.html"
+    if index_file.exists():
+        return FileResponse(index_file, headers={"Cache-Control": "no-cache"})
+    return {"message": "Cost-Aware LLM Router is running, but frontend/index.html was not found. Visit /docs for the API docs."}
 
 
 @app.get("/health")

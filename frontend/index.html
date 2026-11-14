@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Cost-Aware LLM Router</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.css">
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <h1>Cost-Aware LLM Router</h1>
+      <p>Cache first, then the cheapest model that is likely good enough</p>
+    </div>
+    <div class="status" id="status">
+      <span class="dot"></span>
+      <span id="statusText">Connecting...</span>
+    </div>
+  </header>
+
+  <main class="layout">
+    <!-- ============ Chat ============ -->
+    <section class="panel chat" aria-label="Chat">
+      <div class="messages" id="messages" aria-live="polite">
+        <div class="welcome" id="welcome">
+          <h2>Ask a question</h2>
+          <p>
+            In <b>Auto</b> mode every question is checked against the semantic cache first.
+            If a similar question was answered before, you get that answer instantly for free.
+            Otherwise the router picks the small or the large model.
+          </p>
+          <p class="welcome-hint">Try these, in order, and watch the badges and the dashboard:</p>
+          <div class="examples">
+            <button type="button" class="example" data-query="What is the capital of France?">What is the capital of France?</button>
+            <button type="button" class="example" data-query="Which city is the capital of France?">Which city is the capital of France?</button>
+            <button type="button" class="example" data-query="What is 15% of 200?">What is 15% of 200?</button>
+            <button type="button" class="example" data-query="What is 15% of 300?">What is 15% of 300?</button>
+            <button type="button" class="example" data-query="Prove that the square root of 2 is irrational.">Prove that the square root of 2 is irrational.</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="composer">
+        <div class="mode" role="radiogroup" aria-label="Model mode">
+          <label><input type="radio" name="mode" value="auto" checked><span>Auto</span></label>
+          <label><input type="radio" name="mode" value="small"><span>Small</span></label>
+          <label><input type="radio" name="mode" value="large"><span>Large</span></label>
+          <span class="mode-hint" id="modeHint"></span>
+        </div>
+        <div class="input-row">
+          <textarea id="query" rows="1" maxlength="4000" placeholder="Type your question..." aria-label="Your question"></textarea>
+          <button type="button" id="sendBtn">Send</button>
+        </div>
+        <div class="composer-foot">
+          <span id="counter">0 / 4000</span>
+          <span>Enter to send &middot; Shift+Enter for a new line</span>
+          <button type="button" class="link" id="clearChatBtn">Clear chat</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============ Dashboard ============ -->
+    <aside class="panel dashboard" aria-label="Dashboard">
+      <div class="dash-head">
+        <h2>Live dashboard</h2>
+        <button type="button" class="link" id="refreshBtn">Refresh</button>
+      </div>
+
+      <div class="cards">
+        <div class="card">
+          <span class="label">Requests</span>
+          <strong id="statRequests">0</strong>
+          <span class="sub" id="statRequestsSub">&nbsp;</span>
+        </div>
+        <div class="card">
+          <span class="label">Cache hit rate</span>
+          <strong id="statHitRate">0%</strong>
+          <span class="sub" id="statHitRateSub">&nbsp;</span>
+        </div>
+        <div class="card">
+          <span class="label">Saved vs always-large</span>
+          <strong id="statSavings">0%</strong>
+          <span class="sub" id="statSavingsSub">&nbsp;</span>
+        </div>
+        <div class="card">
+          <span class="label">Total cost</span>
+          <strong id="statCost">$0</strong>
+          <span class="sub" id="statCostSub">&nbsp;</span>
+        </div>
+        <div class="card">
+          <span class="label">Average latency</span>
+          <strong id="statLatency">0 ms</strong>
+          <span class="sub">across all requests</span>
+        </div>
+        <div class="card">
+          <span class="label">Who answered</span>
+          <strong id="statMix">0 / 0 / 0</strong>
+          <span class="sub">small / large / cache</span>
+        </div>
+      </div>
+
+      <h3>Cumulative cost <span class="note" id="costNote"></span></h3>
+      <div class="chart-box"><canvas id="costChart"></canvas></div>
+
+      <h3>Who answered</h3>
+      <div class="chart-box short"><canvas id="tierChart"></canvas></div>
+
+      <p class="fineprint" id="thresholds"></p>
+      <p class="fineprint">
+        Savings compare with sending every request to the large model. This is an approximation:
+        it reuses the token counts we actually saw, and the large model might have used more or fewer.
+      </p>
+
+      <div class="dash-actions">
+        <button type="button" class="danger" id="clearLogBtn">Clear request log</button>
+        <button type="button" class="danger" id="clearCacheBtn">Clear cache</button>
+      </div>
+    </aside>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/katex@0.16.11/dist/katex.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.js"></script>
+  <script src="/static/app.js"></script>
+</body>
+</html>
