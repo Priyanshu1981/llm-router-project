@@ -1,0 +1,16 @@
+# Secrets
+.env
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+
+# Local database and logs
+logs/
+*.db
+
+# OS files
+.DS_Store
+Thumbs.db
