@@ -13,17 +13,26 @@ Mode "small" / "large":
 
 The web page (frontend/) is served at "/" and its files at "/static".
 The API documentation is at "/docs".
+
+If DEMO_ACCESS_CODE is set, everything except /login and /healthz needs a sign-in.
 """
 
 import time
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, HTTPException, Query
-from fastapi.responses import FileResponse
+from fastapi import FastAPI, HTTPException, Query, Request
+from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel, Field
 
-from backend import cache, config, cost, database, features, llm_client, router
+from backend import cache, config, cost, database, features, llm_client, router, security
 from backend.schemas import QueryRequest, QueryResponse, StatsResponse
+
+LOGIN_PAGE = config.FRONTEND_DIR / "login.html"
+
+
+class LoginRequest(BaseModel):
+    code: str = Field("", max_length=200)
 
 
 @asynccontextmanager
@@ -37,6 +46,7 @@ async def lifespan(app):
         features.embed_text("warm up")
     except Exception as error:
         print(f"Warning: could not load the embedding model ({error}). Cache and router will not work.")
+    print(f"Access gate: {'ON' if security.gate_enabled() else 'OFF (no DEMO_ACCESS_CODE set)'}")
     yield
 
 
@@ -55,9 +65,31 @@ class NoCacheStaticFiles(StaticFiles):
 app = FastAPI(
     title="Cost-Aware LLM Router",
     description="Routes queries between a small and a large model and caches similar answers.",
-    version="0.5.0",
+    version="0.6.0",
     lifespan=lifespan,
 )
+
+
+@app.middleware("http")
+async def access_gate(request: Request, call_next):
+    """
+    Lets a request through if there is no gate, the path is public, or the visitor
+    has signed in. Otherwise shows the login page (for the home page) or answers 401.
+    """
+    if (
+        not security.gate_enabled()
+        or request.url.path in security.PUBLIC_PATHS
+        or security.is_authenticated(request)
+    ):
+        return await call_next(request)
+
+    if request.method == "GET" and request.url.path == "/":
+        return FileResponse(LOGIN_PAGE, headers={"Cache-Control": "no-store"})
+    return JSONResponse(
+        status_code=401,
+        content={"detail": "Access code required. Open the home page and enter it."},
+    )
+
 
 # The files in the frontend folder are available at /static/...
 app.mount("/static", NoCacheStaticFiles(directory=config.FRONTEND_DIR), name="static")
@@ -67,6 +99,40 @@ def _shorten(text, limit=80):
     """One-line, shortened version of a text, for messages."""
     text = " ".join(text.split())
     return text if len(text) <= limit else text[:limit] + "..."
+
+
+@app.get("/healthz", include_in_schema=False)
+def healthz():
+    """A bare 'alive' check for the hosting platform. It reveals nothing."""
+    return {"status": "ok"}
+
+
+@app.get("/login", include_in_schema=False)
+def login_page(request: Request):
+    if security.is_authenticated(request):
+        return RedirectResponse("/", status_code=303)
+    return FileResponse(LOGIN_PAGE, headers={"Cache-Control": "no-store"})
+
+
+@app.post("/login", include_in_schema=False)
+def login(body: LoginRequest, request: Request):
+    if not security.gate_enabled():
+        return {"ok": True, "gate": False}
+    security.enforce_login_rate(request)
+    if not security.code_is_correct(body.code):
+        raise HTTPException(status_code=401, detail="That access code is not correct.")
+
+    response = JSONResponse({"ok": True})
+    response.set_cookie(
+        security.COOKIE_NAME,
+        security.make_session_token(),
+        max_age=security.SESSION_SECONDS,
+        httponly=True,
+        samesite="lax",
+        secure=security.is_https(request),
+        path="/",
+    )
+    return response
 
 
 @app.get("/", include_in_schema=False)
@@ -82,7 +148,7 @@ def home():
 def health():
     """
     Shows which settings the server loaded.
-    It never reveals the API key itself, only whether one was found.
+    It never reveals the API key or the access code, only whether they were found.
     """
     key_loaded = bool(config.GROQ_API_KEY) and config.GROQ_API_KEY != "paste_your_key_here"
     return {
@@ -98,6 +164,7 @@ def health():
         "router_loaded": router.is_ready(),
         "router_info": router.info(),
         "cache": cache.info(),
+        "limits": security.status(),
         "prices_per_million_tokens": {
             "small": {"input": config.SMALL_INPUT_PRICE_PER_M, "output": config.SMALL_OUTPUT_PRICE_PER_M},
             "large": {"input": config.LARGE_INPUT_PRICE_PER_M, "output": config.LARGE_OUTPUT_PRICE_PER_M},
@@ -109,8 +176,9 @@ def health():
 # network, and FastAPI runs normal "def" endpoints in a separate worker thread,
 # so one slow request does not freeze the whole server.
 @app.post("/query", response_model=QueryResponse)
-def handle_query(request: QueryRequest):
+def handle_query(request: QueryRequest, http_request: Request):
     """Answer one query (from the cache if possible) and log it."""
+    security.enforce_query_rate(http_request)
     started = time.perf_counter()
 
     # 1. In auto mode, embed the question once and look in the cache.
@@ -157,7 +225,8 @@ def handle_query(request: QueryRequest):
             if lookup and lookup["blocked_by"]:
                 route_reason += f" | a similar cached question was not reused ({lookup['blocked_by']})"
 
-        # 3. Call the model.
+        # 3. Call the model (after checking the daily budget).
+        security.reserve_model_call()
         try:
             result = llm_client.generate(tier, request.query)
         except llm_client.LLMError as error:
@@ -238,7 +307,8 @@ def history(limit: int = Query(20, ge=1, le=200)):
 
 @app.delete("/logs")
 def clear_logs():
-    """Delete all logged requests. Useful for clearing test data before real experiments."""
+    """Delete all logged requests. Can be switched off with ALLOW_ADMIN_ACTIONS=false."""
+    security.require_admin()
     deleted = database.reset_logs()
     return {"deleted_rows": deleted}
 
@@ -251,6 +321,7 @@ def cache_contents(limit: int = Query(20, ge=1, le=200)):
 
 @app.delete("/cache")
 def clear_cache():
-    """Delete every cached answer. (This does not delete the request log.)"""
+    """Delete every cached answer. Can be switched off with ALLOW_ADMIN_ACTIONS=false."""
+    security.require_admin()
     deleted = cache.clear()
     return {"deleted_entries": deleted}

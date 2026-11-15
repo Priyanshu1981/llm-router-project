@@ -5,7 +5,8 @@ Central place for every setting in the project.
 Other files do:  from backend import config
 and then use:    config.SMALL_MODEL, config.DB_PATH, ...
 
-Values come from the .env file, with safe defaults if a value is missing.
+Values come from the .env file (on your computer) or from environment variables
+(on a server), with safe defaults if a value is missing.
 """
 
 import os
@@ -17,8 +18,8 @@ from dotenv import load_dotenv
 # llm-router-project/backend/config.py  ->  llm-router-project/
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# Read the .env file in the project root and load its values
-# into environment variables.
+# Read the .env file in the project root, if there is one. Variables that are
+# already set in the environment (as on a server) are NOT overwritten.
 load_dotenv(BASE_DIR / ".env")
 
 
@@ -36,6 +37,14 @@ def _int_env(name, default):
     if value is None or value.strip() == "":
         return default
     return int(value)
+
+
+def _bool_env(name, default):
+    """Read a true/false setting from the environment, falling back to a default."""
+    value = os.getenv(name)
+    if value is None or value.strip() == "":
+        return default
+    return value.strip().lower() in ("1", "true", "yes", "on")
 
 
 # ---------------------------------------------------------------
@@ -73,6 +82,21 @@ SMALL_INPUT_PRICE_PER_M = _float_env("SMALL_INPUT_PRICE_PER_M", 0.075)
 SMALL_OUTPUT_PRICE_PER_M = _float_env("SMALL_OUTPUT_PRICE_PER_M", 0.30)
 LARGE_INPUT_PRICE_PER_M = _float_env("LARGE_INPUT_PRICE_PER_M", 0.15)
 LARGE_OUTPUT_PRICE_PER_M = _float_env("LARGE_OUTPUT_PRICE_PER_M", 0.60)
+
+# ---------------------------------------------------------------
+# Public deployment and security
+# The defaults below leave everything open, which is right on your own computer.
+# On the public server these are set through environment variables.
+# ---------------------------------------------------------------
+# If set, visitors must enter this code before they can use the app.
+DEMO_ACCESS_CODE = os.getenv("DEMO_ACCESS_CODE", "").strip()
+# If false, the "clear cache" and "clear request log" actions are refused.
+ALLOW_ADMIN_ACTIONS = _bool_env("ALLOW_ADMIN_ACTIONS", True)
+# Maximum /query requests per minute from one visitor. 0 means no limit.
+RATE_LIMIT_PER_MINUTE = _int_env("RATE_LIMIT_PER_MINUTE", 0)
+# Maximum calls to the Groq models per day across ALL visitors (cache hits do not
+# count). 0 means no limit. This protects your free Groq quota.
+MODEL_CALLS_PER_DAY = _int_env("MODEL_CALLS_PER_DAY", 0)
 
 # ---------------------------------------------------------------
 # Lookup tables used by the rest of the code.
