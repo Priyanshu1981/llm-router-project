@@ -1,0 +1,11 @@
+{
+  "about": "My own question pairs for testing the semantic cache, written before the fixes. paraphrase_pairs mean the same thing. different_pairs look alike but need different answers.",
+  "paraphrase_pairs": [
+    {"a": "Who discovered gravity?", "b": "Who is credited with discovering gravity?"},
+    {"a": "What is the square of 12?", "b": "What is 12 squared?"}
+  ],
+  "different_pairs": [
+    {"a": "How do I turn on dark mode in Chrome?", "b": "How do I turn off dark mode in Chrome?", "why": "opposite action"},
+    {"a": "What is the population of Mumbai?", "b": "What is the population of Delhi?", "why": "different city"}
+  ]
+}

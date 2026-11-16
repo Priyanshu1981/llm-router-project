@@ -18,10 +18,13 @@ model and still need different answers ("15% of 200" vs "15% of 300").
 
 The guards are simple rules, not understanding. They block a match when they see
 a sign that the answers should differ: different numbers (digits, number words,
-ordinals), negation, a different arithmetic operation, opposing words, different
-names, the same words in a different order, or a multiple-choice question.
-When a guard is unsure it errs on the side of NOT reusing the answer: a lost hit
-costs a little money, a wrong reuse costs a wrong answer.
+ordinals, in order), negation, a different arithmetic operation, opposing words,
+different names, the same words in a different order, non-English text, or a
+multiple-choice question. When a guard is unsure it errs on the side of NOT
+reusing the answer: a lost hit costs a little money, a wrong reuse costs a wrong answer.
+
+is_time_sensitive() recognises questions whose answer changes over time
+("what is today's date", "latest iPhone"). The server never caches those.
 
 Entries are stored in the SQLite file logs/requests.db, so the cache survives
 server restarts, and are also kept in memory for fast lookup.
@@ -96,7 +99,36 @@ def _word_list(text):
 
 
 # ---------------------------------------------------------------
-# Guard 1: numbers (digits, number words and ordinals)
+# Time-sensitive questions
+# ---------------------------------------------------------------
+_TIME_SENSITIVE_RE = re.compile(
+    r"\b(?:"
+    r"today|tonight|tomorrow|yesterday|now|currently|current|latest|newest|recent|recently|"
+    r"right now|at the moment|nowadays|up to date|"
+    r"this (?:morning|afternoon|evening|week|weekend|month|year)|"
+    r"last (?:night|week|weekend|month|year)|"
+    r"next (?:week|weekend|month|year)|"
+    r"weather|forecast|news|trending|score|scores|"
+    r"stock price|share price|price of|exchange rate|"
+    r"what time is it|what(?:'s| is) the time(?! complexity)|what day is it|"
+    r"what(?:'s| is) the date(?! of)|"
+    r"who is the (?:president|prime minister|ceo|chief minister|governor)"
+    r")\b",
+    re.IGNORECASE,
+)
+
+
+def is_time_sensitive(text):
+    """
+    True if the answer to this question probably changes over time, so a stored
+    answer would go stale. Errs on the side of True: a question wrongly flagged
+    is simply not cached, which costs a little money and nothing else.
+    """
+    return bool(_TIME_SENSITIVE_RE.search((text or "").replace("\u2019", "'")))
+
+
+# ---------------------------------------------------------------
+# Guard 1: numbers (digits, number words and ordinals), in order
 # ---------------------------------------------------------------
 # Whole numbers, decimals and numbers with thousands separators: 15, 3.14, 1,200
 _DIGIT_NUMBER_RE = re.compile(r"\d{1,3}(?:,\d{3})+(?:\.\d+)?|\d+(?:\.\d+)?")
@@ -154,14 +186,18 @@ def _spoken_numbers(words):
 
 
 def extract_numbers(text):
-    """All numbers in a text (digits and words), in one standard form, sorted."""
+    """
+    The numbers in a text, each in one standard form: first the digits, then the
+    number words, each in the order they appear. The ORDER matters:
+    "1000 > 999" is not "999 > 1000", and 03/04 is not 04/03.
+    """
     found = []
     for token in _DIGIT_NUMBER_RE.findall(text or ""):
         value = float(token.replace(",", ""))
         found.append(str(int(value)) if value.is_integer() else str(value))
     for value in _spoken_numbers(_word_list(text)):
         found.append(str(value))
-    return sorted(found)
+    return found
 
 
 # ---------------------------------------------------------------
@@ -170,13 +206,15 @@ def extract_numbers(text):
 _NEGATION_WORDS = {
     "not", "no", "never", "none", "neither", "nor", "non",
     "cannot", "without", "except", "false", "incorrect",
+    # common negations from a few other languages, written with English letters
+    "pas", "jamais", "nicht", "kein", "keine", "nie", "niet", "nunca", "nao",
 }
 
 
 def has_negation(text):
-    """True if the text contains a negation word (not, never, non-, isn't, ...)."""
+    """True if the text contains a negation word (not, never, non-, isn't, n'est, ...)."""
     for word in _word_list(text):
-        if word in _NEGATION_WORDS or word.endswith("n't"):
+        if word in _NEGATION_WORDS or word.endswith("n't") or word.startswith("n'"):
             return True
     return False
 
@@ -216,7 +254,8 @@ def _operations_in(text):
 # Guard 4: opposing words
 # ---------------------------------------------------------------
 # If both questions use words from the same group, but different ones,
-# they are probably asking opposite things.
+# they are probably asking opposite things. Synonyms (big and large) are
+# deliberately NOT in the same group.
 _OPPOSITE_GROUPS = [
     {"ascending", "descending"}, {"increasing", "decreasing"}, {"increase", "decrease"},
     {"maximum", "minimum"}, {"largest", "smallest"}, {"biggest", "smallest"},
@@ -233,6 +272,13 @@ _OPPOSITE_GROUPS = [
     {"public", "private"}, {"derivative", "integral"}, {"differentiate", "integrate"},
     {"synchronous", "asynchronous"}, {"mean", "median", "mode"},
     {"sine", "cosine", "tangent"},
+    # added after the flaw tests of Phase 8
+    {"easy", "hard"}, {"easy", "difficult"}, {"easier", "harder"}, {"easiest", "hardest"},
+    {"bigger", "smaller"}, {"larger", "smaller"},
+    {"small", "large", "medium"}, {"small", "big"}, {"little", "big"}, {"tiny", "huge"},
+    {"radius", "diameter", "circumference"}, {"raw", "cooked"},
+    {"more", "less", "fewer"}, {"older", "younger"},
+    {"today", "tomorrow", "yesterday", "tonight"},
 ]
 
 
@@ -296,8 +342,13 @@ def _content_words(words):
 
 
 # ---------------------------------------------------------------
-# Multiple choice
+# Non-English text and multiple choice
 # ---------------------------------------------------------------
+def _has_non_english_letters(text):
+    """True if the text contains letters outside plain English (accents, Hindi, Chinese, ...)."""
+    return any(ch.isalpha() and ord(ch) > 127 for ch in (text or ""))
+
+
 # A line that starts like a multiple-choice option:  "A. something"  or  "(B) something"
 _OPTION_LINE_RE = re.compile(r"(?m)^\s*\(?[A-D][.)]\s+\S")
 
@@ -316,6 +367,9 @@ def guard_failure(query_a, query_b):
     """
     if normalize(query_a) == normalize(query_b):
         return None  # the same question: always safe
+
+    if _has_non_english_letters(query_a) or _has_non_english_letters(query_b):
+        return "non-English text: the guards cannot read it, so only an exact repeat may match"
 
     if is_multiple_choice(query_a) or is_multiple_choice(query_b):
         return "multiple-choice question: only an exact repeat may match"

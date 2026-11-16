@@ -1,0 +1,108 @@
+{
+  "url": "http://127.0.0.1:8000",
+  "tested_at": "2026-11-16 04:31:16",
+  "results": [
+    {
+      "id": "V1",
+      "status": "PASS",
+      "description": "an empty question is rejected",
+      "detail": "HTTP 422"
+    },
+    {
+      "id": "V2",
+      "status": "PASS",
+      "description": "a question of only spaces is rejected",
+      "detail": "HTTP 422"
+    },
+    {
+      "id": "V3",
+      "status": "PASS",
+      "description": "a question over 4000 characters is rejected",
+      "detail": "HTTP 422"
+    },
+    {
+      "id": "V4",
+      "status": "PASS",
+      "description": "an unknown mode is rejected",
+      "detail": "HTTP 422"
+    },
+    {
+      "id": "V5",
+      "status": "PASS",
+      "description": "a request without a question is rejected",
+      "detail": "HTTP 422"
+    },
+    {
+      "id": "V6",
+      "status": "PASS",
+      "description": "a body that is not JSON is rejected",
+      "detail": "HTTP 422"
+    },
+    {
+      "id": "R1",
+      "status": "PASS",
+      "description": "emoji and non-English text are handled",
+      "detail": "HTTP 200"
+    },
+    {
+      "id": "R2",
+      "status": "PASS",
+      "description": "SQL-looking text does not damage the database",
+      "detail": "HTTP 200, log still readable: True"
+    },
+    {
+      "id": "R3",
+      "status": "PASS",
+      "description": "HTML in a question does not break the server",
+      "detail": "HTTP 200"
+    },
+    {
+      "id": "R3b",
+      "status": "MANUAL",
+      "description": "paste that same sentence into the chat page: no pop-up window may appear",
+      "detail": "the page should show it as harmless text"
+    },
+    {
+      "id": "R4",
+      "status": "PASS",
+      "description": "a prompt-injection attempt does not reveal an API key",
+      "detail": "HTTP 200"
+    },
+    {
+      "id": "R4b",
+      "status": "INFO",
+      "description": "the system prompt was not repeated",
+      "detail": "it holds no secrets, so this is informational only"
+    },
+    {
+      "id": "R5",
+      "status": "PASS",
+      "description": "a 3,900-character single word does not crash the server",
+      "detail": "HTTP 200"
+    },
+    {
+      "id": "R6",
+      "status": "PASS",
+      "description": "a question containing a null character does not crash the server",
+      "detail": "HTTP 200"
+    },
+    {
+      "id": "R7",
+      "status": "FAIL",
+      "description": "a cut-off answer tells the user it was cut off",
+      "detail": "2048 output tokens, limit 2048"
+    },
+    {
+      "id": "C1",
+      "status": "FAIL",
+      "description": "simultaneous identical questions cause only one model call",
+      "detail": "8 requests -> 8 model calls, 0 cache hits"
+    },
+    {
+      "id": "C2",
+      "status": "PASS",
+      "description": "20 simultaneous cache hits all succeed",
+      "detail": "statuses {200: 20}, 20/20 hits, slowest 897 ms"
+    }
+  ]
+}

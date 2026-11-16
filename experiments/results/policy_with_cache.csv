@@ -1,0 +1,13 @@
+repeat_share,cache_avoids_pct,policy,accuracy_pct,cost_pct_of_large_with_cache,avg_latency_ms_with_cache
+0.0,0.04,Always large,89.52,99.96,792.3
+0.0,0.04,Router (as trained),87.86,76.37,751.8
+0.0,0.04,Always small,85.71,41.89,707.5
+0.1,9.32,Always large,89.52,90.67,720.6
+0.1,9.32,Router (as trained),87.86,69.28,683.8
+0.1,9.32,Always small,85.71,38.0,643.7
+0.3,29.7,Always large,89.52,70.3,563.1
+0.3,29.7,Router (as trained),87.86,53.71,534.7
+0.3,29.7,Always small,85.71,29.46,503.5
+0.5,49.1,Always large,89.52,50.9,413.3
+0.5,49.1,Router (as trained),87.86,38.89,392.6
+0.5,49.1,Always small,85.71,21.33,370.1

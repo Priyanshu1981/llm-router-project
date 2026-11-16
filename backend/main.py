@@ -7,6 +7,9 @@ Mode "auto":
       -> look in the semantic cache; if a similar question was answered, reuse it (cost $0)
       -> otherwise the router picks the small or large model, the model answers,
          and the answer is stored in the cache for next time
+    Questions whose answer changes over time ("what is today's date") skip the cache.
+    Identical questions that arrive at the same moment take turns, so only the first
+    one calls the model.
 Mode "small" / "large":
     use exactly that model. The cache is neither read nor written, because the
     caller asked for a specific model.
@@ -18,17 +21,23 @@ If DEMO_ACCESS_CODE is set, everything except /login and /healthz needs a sign-i
 """
 
 import time
-from contextlib import asynccontextmanager
+from contextlib import ExitStack, asynccontextmanager
 
 from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
-from backend import cache, config, cost, database, features, llm_client, router, security
+from backend import cache, config, cost, database, features, llm_client, router, security, singleflight
 from backend.schemas import QueryRequest, QueryResponse, StatsResponse
 
 LOGIN_PAGE = config.FRONTEND_DIR / "login.html"
+
+# Added to an answer that the model did not finish (it reached the output limit).
+TRUNCATION_NOTE = "\n\n*(This answer was cut off because it reached the length limit.)*"
+
+# Makes identical simultaneous questions take turns.
+flights = singleflight.KeyedLock()
 
 
 class LoginRequest(BaseModel):
@@ -65,7 +74,7 @@ class NoCacheStaticFiles(StaticFiles):
 app = FastAPI(
     title="Cost-Aware LLM Router",
     description="Routes queries between a small and a large model and caches similar answers.",
-    version="0.6.0",
+    version="0.7.0",
     lifespan=lifespan,
 )
 
@@ -181,72 +190,86 @@ def handle_query(request: QueryRequest, http_request: Request):
     security.enforce_query_rate(http_request)
     started = time.perf_counter()
 
-    # 1. In auto mode, embed the question once and look in the cache.
-    embedding = None
-    lookup = None
-    if request.mode == "auto":
-        try:
-            embedding = features.embed_text(request.query)
-            lookup = cache.lookup(request.query, embedding)
-        except Exception as error:
-            # If the cache fails for any reason, carry on without it.
-            print(f"Warning: cache lookup skipped ({error})")
-            embedding = None
-            lookup = None
+    # Questions whose answer changes over time are never read from or stored in the cache.
+    time_sensitive = request.mode == "auto" and cache.is_time_sensitive(request.query)
+    use_cache = request.mode == "auto" and not time_sensitive
 
-    similarity = lookup["similarity"] if lookup else None
-    cache_hit = bool(lookup and lookup["hit"])
+    with ExitStack() as stack:
+        if use_cache:
+            # If identical questions arrive at the same moment, the first one calls the
+            # model and stores its answer. The others wait here, then find it in the cache.
+            stack.enter_context(flights.hold(cache.normalize(request.query)))
 
-    if cache_hit:
-        # 2a. Cache hit: reuse the stored answer. No model is called, so no tokens are used.
-        entry = lookup["entry"]
-        tier = "cache"
-        model_name = f"cache (answer from {entry['model_name']})"
-        answer = entry["answer"]
-        route_reason = (
-            f"semantic cache hit: similarity {similarity:.3f} with an earlier question: "
-            f"\"{_shorten(entry['query'])}\""
-        )
-        input_tokens = 0
-        output_tokens = 0
-        # For the "always large" baseline we use the token counts of the original answer.
-        baseline_input_tokens = entry["input_tokens"]
-        baseline_output_tokens = entry["output_tokens"]
-    else:
-        # 2b. Cache miss (or cache not used): decide which model to use.
-        if request.mode == "small":
-            tier = "small"
-            route_reason = "forced by the caller (mode=small)"
-        elif request.mode == "large":
-            tier = "large"
-            route_reason = "forced by the caller (mode=large)"
-        else:
-            tier, route_reason, _router_score = router.route(request.query, embedding)
-            if lookup and lookup["blocked_by"]:
-                route_reason += f" | a similar cached question was not reused ({lookup['blocked_by']})"
-
-        # 3. Call the model (after checking the daily budget).
-        security.reserve_model_call()
-        try:
-            result = llm_client.generate(tier, request.query)
-        except llm_client.LLMError as error:
-            raise HTTPException(status_code=error.status_code, detail=error.message)
-
-        answer = result["text"]
-        model_name = result["model_name"]
-        input_tokens = result["input_tokens"]
-        output_tokens = result["output_tokens"]
-        baseline_input_tokens = input_tokens
-        baseline_output_tokens = output_tokens
-
-        # 4. Store the answer for next time (auto mode only, and only complete answers).
-        if embedding is not None and result["finish_reason"] == "stop":
+        # 1. Embed the question once and look in the cache.
+        embedding = None
+        lookup = None
+        if use_cache:
             try:
-                cache.add(request.query, embedding, answer, tier, model_name, input_tokens, output_tokens)
+                embedding = features.embed_text(request.query)
+                lookup = cache.lookup(request.query, embedding)
             except Exception as error:
-                print(f"Warning: could not store the answer in the cache ({error})")
+                # If the cache fails for any reason, carry on without it.
+                print(f"Warning: cache lookup skipped ({error})")
+                embedding = None
+                lookup = None
 
-    # 5. Time for the whole request (embedding, lookup, routing and model call).
+        similarity = lookup["similarity"] if lookup else None
+        cache_hit = bool(lookup and lookup["hit"])
+
+        if cache_hit:
+            # 2a. Cache hit: reuse the stored answer. No model is called, so no tokens are used.
+            entry = lookup["entry"]
+            tier = "cache"
+            model_name = f"cache (answer from {entry['model_name']})"
+            answer = entry["answer"]
+            route_reason = (
+                f"semantic cache hit: similarity {similarity:.3f} with an earlier question: "
+                f"\"{_shorten(entry['query'])}\""
+            )
+            input_tokens = 0
+            output_tokens = 0
+            # For the "always large" baseline we use the token counts of the original answer.
+            baseline_input_tokens = entry["input_tokens"]
+            baseline_output_tokens = entry["output_tokens"]
+        else:
+            # 2b. Cache miss (or cache not used): decide which model to use.
+            if request.mode == "small":
+                tier = "small"
+                route_reason = "forced by the caller (mode=small)"
+            elif request.mode == "large":
+                tier = "large"
+                route_reason = "forced by the caller (mode=large)"
+            else:
+                tier, route_reason, _router_score = router.route(request.query, embedding)
+                if time_sensitive:
+                    route_reason += " | time-sensitive question: the cache was skipped"
+                if lookup and lookup["blocked_by"]:
+                    route_reason += f" | a similar cached question was not reused ({lookup['blocked_by']})"
+
+            # 3. Call the model (after checking the daily budget).
+            security.reserve_model_call()
+            try:
+                result = llm_client.generate(tier, request.query)
+            except llm_client.LLMError as error:
+                raise HTTPException(status_code=error.status_code, detail=error.message)
+
+            answer = result["text"]
+            if result["finish_reason"] == "length":
+                answer += TRUNCATION_NOTE
+            model_name = result["model_name"]
+            input_tokens = result["input_tokens"]
+            output_tokens = result["output_tokens"]
+            baseline_input_tokens = input_tokens
+            baseline_output_tokens = output_tokens
+
+            # 4. Store the answer for next time (only complete answers, and only if the cache is used).
+            if embedding is not None and result["finish_reason"] == "stop":
+                try:
+                    cache.add(request.query, embedding, answer, tier, model_name, input_tokens, output_tokens)
+                except Exception as error:
+                    print(f"Warning: could not store the answer in the cache ({error})")
+
+    # 5. Time for the whole request (waiting, embedding, lookup, routing and model call).
     latency_ms = (time.perf_counter() - started) * 1000.0
 
     # 6. Cost, and what the "always large" baseline would have cost.

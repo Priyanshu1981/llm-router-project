@@ -51,7 +51,7 @@ different,Translate 'good morning' into Spanish.,Translate 'good morning' into F
 different,Who discovered penicillin?,Who discovered insulin?,0.5418,False,,different discovery
 different,What is the sum of the angles in a triangle?,What is the sum of the angles in a quadrilateral?,0.8183,False,,different shape
 different,What is 12 times 8?,What is 12 plus 8?,0.787,True,the two questions ask for different arithmetic operations,"same numbers, different operation"
-different,Add 25 and 17.,Subtract 17 from 25.,0.738,True,the two questions ask for different arithmetic operations,"same numbers, different operation"
+different,Add 25 and 17.,Subtract 17 from 25.,0.738,True,the two questions contain different numbers,"same numbers, different operation"
 different,Is 17 a prime number?,Is 18 a prime number?,0.8466,True,the two questions contain different numbers,different number
 different,What is the boiling point of water in Celsius?,What is the freezing point of water in Celsius?,0.8323,True,the questions use opposing words (boiling vs freezing),opposite property
 different,Which team won the 2018 FIFA World Cup?,Which team won the 2022 FIFA World Cup?,0.7247,True,the two questions contain different numbers,different year

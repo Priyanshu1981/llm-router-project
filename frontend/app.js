@@ -4,6 +4,10 @@
  *   - sends questions to POST /query and shows the answer with its badge and numbers
  *   - renders markdown and LaTeX maths in answers, safely
  *   - keeps the dashboard in sync with GET /stats, GET /history and GET /health
+ *
+ * Safety of answers (they come from a model, and may come from the shared cache):
+ *   - raw HTML tags in an answer are shown as plain text, apart from a short list of harmless ones
+ *   - the sanitiser then removes scripts, event handlers, images, media, frames, forms and styles
  */
 (function () {
   "use strict";
@@ -18,6 +22,22 @@
   };
 
   var TIER_LABELS = { cache: "Cache hit", small: "Small model", large: "Large model" };
+
+  // HTML tags that may stay in an answer as real tags (the sanitiser still checks them).
+  // Any other tag-like text is shown as plain text instead of being built into page elements.
+  var KEEP_TAGS = [
+    "br", "b", "i", "u", "s", "em", "strong", "sup", "sub", "small", "mark", "del", "ins", "kbd",
+    "p", "ul", "ol", "li", "hr", "blockquote", "code", "pre",
+    "table", "thead", "tbody", "tr", "th", "td",
+    "h1", "h2", "h3", "h4", "h5", "h6", "span", "div", "details", "summary"
+  ];
+
+  // Removed from answers for safety, even if they get past the step above.
+  var FORBIDDEN_TAGS = [
+    "img", "picture", "source", "video", "audio", "track", "iframe", "object", "embed",
+    "form", "input", "button", "textarea", "select", "option", "style", "link", "meta", "base"
+  ];
+  var FORBIDDEN_ATTRS = ["style", "src", "srcset", "background", "poster", "formaction"];
 
   function byId(id) { return document.getElementById(id); }
 
@@ -146,6 +166,15 @@
     return "<code>" + escapeHtml(item.tex) + "</code>";
   }
 
+  // Turns tag-like text such as <img src=x> or <script> into visible characters,
+  // unless the tag is on the short list of harmless ones.
+  function showUnknownTagsAsText(text) {
+    return text.replace(/<(\/?)([A-Za-z][A-Za-z0-9-]*)([^<>]*)>/g, function (match, slash, name, rest) {
+      if (KEEP_TAGS.indexOf(name.toLowerCase()) !== -1) { return match; }
+      return "&lt;" + slash + name + rest + "&gt;";
+    });
+  }
+
   function renderMarkdown(text) {
     var source = String(text || "");
 
@@ -171,14 +200,20 @@
         });
       });
 
-      // 3. Put the code back and convert markdown to HTML.
+      // 3. Show unknown HTML tags as plain text, put the code back,
+      //    and convert markdown to HTML.
+      work = showUnknownTagsAsText(work);
       work = work.replace(/XCODEX(\d+)X/g, function (match, index) {
         return codeStore[Number(index)];
       });
       var html = window.marked.parse(work, { gfm: true, breaks: true });
 
-      // 4. Remove anything unsafe (scripts, event handlers, ...).
-      html = window.DOMPurify.sanitize(html, { USE_PROFILES: { html: true } });
+      // 4. Remove anything unsafe (scripts, event handlers, images, frames, forms, styles ...).
+      html = window.DOMPurify.sanitize(html, {
+        USE_PROFILES: { html: true },
+        FORBID_TAGS: FORBIDDEN_TAGS,
+        FORBID_ATTR: FORBIDDEN_ATTRS
+      });
 
       // 5. Render the maths with KaTeX. KaTeX makes its own safe HTML,
       //    so this happens after sanitising.

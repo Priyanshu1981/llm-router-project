@@ -1,0 +1,33 @@
+﻿kind,group,question_a,question_b,similarity,guard_reason,outcome
+trap,unit direction,Convert 5 kilometers to miles.,Convert 5 miles to kilometers.,0.993,the same words appear in a different order,blocked by a guard
+trap,unit name,What is the boiling point of water in Celsius?,What is the boiling point of water in Fahrenheit?,0.9124,"each question names something (a person, place or term) that the other does not",blocked by a guard
+trap,ordinal word,Who was the third president of the United States?,Who was the fourth president of the United States?,0.853,the two questions contain different numbers,blocked by a guard
+trap,date year,What happened on 4 July 1776?,What happened on 4 July 1777?,0.7817,the two questions contain different numbers,blocked by a guard
+trap,one-word swap,Is it safe to eat raw eggs?,Is it safe to eat cooked eggs?,0.8831,the questions use opposing words (raw vs cooked),blocked by a guard
+trap,antonym not listed,What is the easiest sorting algorithm to learn?,What is the hardest sorting algorithm to learn?,0.9395,the questions use opposing words (easiest vs hardest),blocked by a guard
+trap,lowercase name,what is the capital of australia?,what is the capital of austria?,0.7104,,safe: low similarity
+trap,language name,Translate hello into German.,Translate hello into Dutch.,0.7815,"each question names something (a person, place or term) that the other does not",blocked by a guard
+trap,programming language,Does Python use curly braces?,Does Java use curly braces?,0.7064,"each question names something (a person, place or term) that the other does not",blocked by a guard
+trap,comparison direction,Is Python faster than C?,Is C faster than Python?,0.9863,the same words appear in a different order,blocked by a guard
+trap,word order,Does the dog chase the cat?,Does the cat chase the dog?,0.9954,the same words appear in a different order,blocked by a guard
+trap,arithmetic symbol,What is 6+3?,What is 6*3?,0.8495,the two questions ask for different arithmetic operations,blocked by a guard
+trap,currency direction,Convert 100 USD to INR.,Convert 100 INR to USD.,0.9415,the same words appear in a different order,blocked by a guard
+trap,letter swap,How many r's are in strawberry?,How many s's are in strawberry?,0.8333,,safe: low similarity
+trap,size word,How long should I bake a small cake?,How long should I bake a large cake?,0.9441,the questions use opposing words (small vs large),blocked by a guard
+trap,radius vs diameter,What is the area of a circle with radius 5?,What is the area of a circle with diameter 5?,0.9566,the questions use opposing words (radius vs diameter),blocked by a guard
+trap,number order,Is 1000 greater than 999?,Is 999 greater than 1000?,0.9934,the two questions contain different numbers,blocked by a guard
+trap,date format,What day of the week is 03/04/2026?,What day of the week is 04/03/2026?,0.9965,the two questions contain different numbers,blocked by a guard
+trap,Spanish negation,¿La Tierra es plana?,¿La Tierra no es plana?,0.9807,one question is negated and the other is not,blocked by a guard
+trap,Hindi negation,क्या पृथ्वी चपटी है?,क्या पृथ्वी चपटी नहीं है?,0.9506,"non-English text: the guards cannot read it, so only an exact repeat may match",blocked by a guard
+trap,French negation,Est-ce que le ciel est bleu ?,Est-ce que le ciel n'est pas bleu ?,0.9523,one question is negated and the other is not,blocked by a guard
+trap,Spanish number words,¿Qué es el cinco por ciento de doscientos?,¿Qué es el diez por ciento de doscientos?,0.825,"non-English text: the guards cannot read it, so only an exact repeat may match",blocked by a guard
+trap,antonym not listed (2),"Which is bigger, a mouse or an elephant?","Which is smaller, a mouse or an elephant?",0.9764,the questions use opposing words (bigger vs smaller),blocked by a guard
+trap,time word,Will it rain today?,Will it rain tomorrow?,0.9492,the questions use opposing words (today vs tomorrow),blocked by a guard
+paraphrase,contraction,What's the capital of France?,What is the capital of France?,0.9935,,reused (good)
+paraphrase,number word vs article,How many seconds are in an hour?,How many seconds are in one hour?,0.9705,the two questions contain different numbers,lost: blocked by a guard
+paraphrase,how do I / how can I,How do I install Python on Windows 11?,How can I install Python on Windows 11?,0.9952,,reused (good)
+paraphrase,words vs digits,What is two plus two?,What is 2 plus 2?,0.9292,,reused (good)
+paraphrase,rephrased,How many days are in a week?,How many days does a week have?,0.9619,,reused (good)
+paraphrase,define / mean,Define photosynthesis.,What does photosynthesis mean?,0.8915,,lost: below threshold
+paraphrase,article dropped,Is the Earth round?,Is Earth round?,0.9853,,reused (good)
+paraphrase,question reordered,What is the largest ocean?,Which ocean is the largest?,0.97,the same words appear in a different order,lost: blocked by a guard

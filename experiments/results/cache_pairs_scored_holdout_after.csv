@@ -1,0 +1,5 @@
+﻿kind,question_a,question_b,similarity,guard_blocks,guard_reason,why_different
+paraphrase,Who discovered gravity?,Who is credited with discovering gravity?,0.9346,False,,
+paraphrase,What is the square of 12?,What is 12 squared?,0.8706,False,,
+different,How do I turn on dark mode in Chrome?,How do I turn off dark mode in Chrome?,0.9569,False,,opposite action
+different,What is the population of Mumbai?,What is the population of Delhi?,0.7172,True,"each question names something (a person, place or term) that the other does not",different city
